@@ -1,172 +1,200 @@
-# Deriving Softmax as the Canonical Link for Multiclass (Categorical) Distribution
+# Deriving Softmax as Canonical Link for Categorical Distribution
 
-We derive the **softmax** function as the **inverse of the canonical link** for a multiclass classification problem by expressing the **categorical distribution** in **exponential family form**.
-
----
-
-## 🎯 Goal
-
-Express the **categorical distribution** (i.e., multinomial with one trial) as a member of the **exponential family** and identify the corresponding **canonical link**.
+We derive the softmax function as the inverse of the canonical link for a multiclass classification problem, by expressing the categorical distribution as a member of the exponential family.
 
 ---
 
-## Step 1: Categorical (Multinomial) Distribution
+## Step 1: Categorical Distribution
 
-Let:
+Let $y \in \{1, ..., K\}$ be a class label.
 
-- \( y \in \{1, 2, \dots, K\} \) (categorical label)
-- One-hot encoded label:
+We one-hot encode $y$ as a vector:
 
-  \[
-  \mathbf{y} = (y_1, y_2, \dots, y_K), \quad \text{where } y_k = \begin{cases}1 & \text{if } y = k \\ 0 & \text{otherwise}\end{cases}
-  \]
+```math
+y = (y_1, y_2, ..., y_K), \quad y_k \in \{0, 1\}, \quad \sum_{k=1}^K y_k = 1
+```
 
-- Probability vector: \( \mathbf{p} = (p_1, \dots, p_K) \), with \( \sum_{k=1}^K p_k = 1 \)
+Let the class probabilities be:
 
-The likelihood becomes:
+```math
+p = (p_1, ..., p_K), \quad \sum_{k=1}^K p_k = 1
+```
 
-\[
+Then the PMF of the categorical distribution is:
+
+```math
 P(y) = \prod_{k=1}^K p_k^{y_k}
-\]
+```
 
-Log-likelihood:
+The log-likelihood is:
 
-\[
+```math
 \log P(y) = \sum_{k=1}^K y_k \log p_k
-\]
+```
 
 ---
 
 ## Step 2: Exponential Family Form
 
-General form of exponential family:
+The exponential family has the form:
 
-\[
-f(y) = h(y) \cdot \exp\left( \langle \boldsymbol{\theta}, \boldsymbol{T}(y) \rangle - A(\boldsymbol{\theta}) \right)
-\]
+```math
+f(y) = h(y) \exp\left( \theta^T T(y) - A(\theta) \right)
+```
 
-Choose class \( K \) as the reference class and define natural parameters:
+We set:
 
-\[
-\theta_k = \log\left( \frac{p_k}{p_K} \right), \quad \text{for } k = 1, \dots, K-1
-\]
+- Natural parameters: $\theta_k = \log(p_k / p_K)$ for $k = 1, ..., K-1$
+- Reference class: $p_K$ (the denominator in the softmax)
 
 Then:
 
-\[
-p_k = \frac{e^{\theta_k}}{1 + \sum_{j=1}^{K-1} e^{\theta_j}}, \quad p_K = \frac{1}{1 + \sum_{j=1}^{K-1} e^{\theta_j}}
-\]
+```math
+p_k = \frac{\exp(\theta_k)}{1 + \sum_{j=1}^{K-1} \exp(\theta_j)}, \quad \text{for } k = 1, ..., K-1
+```
 
-Substitute into the log-likelihood:
+```math
+p_K = \frac{1}{1 + \sum_{j=1}^{K-1} \exp(\theta_j)}
+```
 
-\[
-\log P(\mathbf{y}) = \sum_{k=1}^{K-1} y_k \theta_k + \log p_K
-\]
+Substituting into the log-likelihood:
 
-Using:
+```math
+\log P(y) = \sum_{k=1}^{K-1} y_k \theta_k + y_K \log p_K
+```
 
-\[
-\log p_K = - \log\left( 1 + \sum_{j=1}^{K-1} e^{\theta_j} \right)
-\]
+But since:
+
+```math
+y_K = 1 - \sum_{k=1}^{K-1} y_k
+```
+
+We have:
+
+```math
+\log P(y) = \sum_{k=1}^{K-1} y_k \theta_k + \left(1 - \sum_{k=1}^{K-1} y_k\right) \log p_K
+```
+
+Simplifying:
+
+```math
+\log P(y) = \sum_{k=1}^{K-1} y_k \theta_k - \log\left(1 + \sum_{j=1}^{K-1} \exp(\theta_j)\right)
+```
 
 So:
 
-\[
-P(\mathbf{y}) = \exp\left( \sum_{k=1}^{K-1} y_k \theta_k - \log\left( 1 + \sum_{j=1}^{K-1} e^{\theta_j} \right) \right)
-\]
+```math
+P(y) = \exp\left( \sum_{k=1}^{K-1} y_k \theta_k - A(\theta) \right)
+```
 
 ---
 
-## Identifying Exponential Family Components
+## Step 3: Match to Exponential Family
 
-| Component                  | Expression                                                                 |
-|---------------------------|----------------------------------------------------------------------------|
-| Sufficient statistics \( \boldsymbol{T}(y) \) | \( \left[ y_1, y_2, \dots, y_{K-1} \right] \)                         |
-| Natural parameters \( \boldsymbol{\theta} \) | \( \left[ \theta_1, \theta_2, \dots, \theta_{K-1} \right] \)         |
-| Log-partition \( A(\boldsymbol{\theta}) \)   | \( \log\left( 1 + \sum_{j=1}^{K-1} e^{\theta_j} \right) \)         |
-| Base measure \( h(y) \)                      | \( 1 \)                                                               |
+Comparing to:
 
-Final form:
+```math
+f(y) = h(y) \exp\left( \theta^T T(y) - A(\theta) \right)
+```
 
-\[
-P(\mathbf{y}) = \underbrace{1}_{h(y)} \cdot \exp\left( \underbrace{\sum_{k=1}^{K-1} y_k \theta_k}_{\langle \theta, T(y) \rangle} - \underbrace{\log\left(1 + \sum_{j=1}^{K-1} e^{\theta_j} \right)}_{A(\theta)} \right)
-\]
+We identify:
 
----
-
-## Canonical Link Function
-
-In GLMs, the **canonical link** is:
-
-\[
-\eta_k = \log\left( \frac{p_k}{p_K} \right), \quad \text{for } k = 1, \dots, K-1
-\]
-
-This gives the inverse link (i.e., **softmax**):
-
-\[
-p_k = \frac{e^{\eta_k}}{\sum_{j=1}^K e^{\eta_j}}, \quad \text{for all } k
-\]
+- $T(y) = (y_1, ..., y_{K-1})$
+- $\theta = (\theta_1, ..., \theta_{K-1})$
+- $A(\theta) = \log\left(1 + \sum_{j=1}^{K-1} \exp(\theta_j)\right)$
+- $h(y) = 1$
 
 ---
 
-## Summary Table
+## Step 4: Canonical Link is Softmax
 
-| Quantity                | Expression                                                  |
-|------------------------|-------------------------------------------------------------|
-| Target space           | \( y \in \{1, 2, \dots, K\} \), one-hot encoded             |
-| Canonical parameters   | \( \theta_k = \log\left( \frac{p_k}{p_K} \right) \)         |
-| Sufficient statistics  | \( T(y) = (y_1, \dots, y_{K-1}) \)                           |
-| Log-partition function | \( A(\theta) = \log\left(1 + \sum_{j=1}^{K-1} e^{\theta_j} \right) \) |
-| Canonical link         | \( \eta_k = \log\left( \frac{p_k}{p_K} \right) \)           |
-| Inverse link (softmax) | \( p_k = \frac{e^{\eta_k}}{\sum_{j=1}^K e^{\eta_j}} \)      |
+In a GLM, the canonical link is defined as:
 
+```math
+\theta_k = \log\left(\frac{p_k}{p_K}\right), \quad \text{for } k = 1, ..., K-1
+```
 
----
+To solve for $p_k$, introduce $\theta_K = 0$ for identifiability and rewrite:
 
-### ❓ Why Not Use Only N−1 Logits?
+```math
+p_k = \frac{\exp(\theta_k)}{\sum_{j=1}^K \exp(\theta_j)}, \quad \text{for } k = 1, ..., K
+```
 
-For binary classification:
-- We only need **1 output** (since \( P(y=0) = 1 - P(y=1) \)).
-
-For multiclass classification:
-- Softmax models \( K \) logits:
-  \[
-  p_k = \frac{e^{\eta_k}}{\sum_{j=1}^K e^{\eta_j}}
-  \]
-- However, the softmax is **invariant to constant shifts** in logits:
-  \[
-  \text{softmax}(\eta_1 + c, ..., \eta_K + c) = \text{softmax}(\eta_1, ..., \eta_K)
-  \]
-
-🔁 This means the model is **overparameterized** — only **K−1** directions matter. One logit is redundant.
+This is exactly the **softmax function**.
 
 ---
 
-### 🧠 Modeling Strategies
+## ✅ Summary
 
-| Strategy                     | Description                                                  | Parameters Used         |
-|------------------------------|--------------------------------------------------------------|--------------------------|
-| **Constrained Softmax**      | Model all \( K \) logits, apply normalization constraint     | \( K \) logits, \( K - 1 \) effective |
-| **Reference Class (baseline)** | Fix one logit (e.g., class K) to 0, model rest relative to it | \( K - 1 \) logits        |
+- The softmax function arises naturally as the **inverse of the canonical link** for the categorical distribution.
+- The natural (canonical) parameter is the log-odds $\theta_k = \log(p_k / p_K)$.
+- The partition function $A(\theta)$ ensures normalization: all class probabilities sum to 1.
+
+---
+# Why Not Use Only N−1 Logits in Multiclass Classification?
+
+In binary classification, we only need one logit because the probability of the second class is determined as `1 - p`. But in **multiclass classification**, the situation is a bit different.
 
 ---
 
-### ✅ Summary Table
+## 1. Softmax Uses All $N$ Logits
 
-| Problem Type    | # of Classes \( K \) | # of Outputs Needed | Link Function     | Inverse Link       |
-|-----------------|----------------------|----------------------|-------------------|---------------------|
-| Binary          | 2                    | 1                    | Logit             | Sigmoid             |
-| Multiclass      | \( K > 2 \)          | \( K \), but \( K-1 \) effective | Multinomial logit | Softmax             |
+In softmax regression (multinomial logistic regression), we assign a score (logit) to **each** class:
 
-> ✅ In GLMs, softmax (like sigmoid) is **probabilistically optimal** under the correct distributional assumptions (categorical or Bernoulli).
+```math
+z_k = \text{logit for class } k, \quad k = 1, ..., N
+```
+
+We convert logits to class probabilities using the softmax function:
+
+```math
+p_k = \frac{e^{z_k}}{\sum_{j=1}^{N} e^{z_j}}
+```
+
+This ensures:
+
+- All probabilities $p_k$ are between 0 and 1
+- $\sum_{k=1}^N p_k = 1$
 
 ---
 
-### 🧪 Implementation Note
+## 2. Why Not Use Only $N-1$?
 
-In practice (e.g., XGBoost, PyTorch, scikit-learn):
-- Multiclass models often **output \( K \) logits**.
-- The overparameterization is handled implicitly by the **softmax layer**.
-- Optimization proceeds in the probability space (after softmax), so the redundancy is not a practical problem.
+Technically, the softmax function has **redundancy** because if you shift all logits by a constant (e.g., subtract the same value from all $z_k$), the probabilities don’t change:
 
+```math
+\text{softmax}(z_1 + c, ..., z_N + c) = \text{softmax}(z_1, ..., z_N)
+```
+
+This means only **$N - 1$ logits are linearly independent**.
+
+In fact, in **statistical modeling**, this is exactly what we do:
+
+- We fix one class (say, class $N$) as the reference.
+- We parameterize the log-odds of other classes relative to it:
+
+```math
+\log\left(\frac{p_k}{p_N}\right) = \theta_k, \quad k = 1, ..., N-1
+```
+
+So, yes — **you only need $N - 1$ parameters** to fully specify the model. That’s often how it’s done in GLMs (Generalized Linear Models).
+
+---
+
+## 3. Why Use $N$ in Practice?
+
+Libraries like XGBoost, PyTorch, TensorFlow, etc., typically use **$N$ logits** for simplicity and symmetry:
+
+- It avoids having to pick a “reference class”
+- Code is simpler and works for any $N$
+- The softmax automatically handles normalization
+
+The redundancy is harmless: model weights are **not uniquely identifiable**, but predictions are.
+
+---
+
+## ✅ Summary
+
+- Softmax maps $N$ logits to $N$ probabilities summing to 1.
+- Only $N - 1$ logits are linearly independent due to translation invariance.
+- Statistical models often use $N - 1$ logits (e.g., GLMs), but practical implementations use all $N$ for convenience.
